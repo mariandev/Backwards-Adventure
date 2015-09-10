@@ -20,7 +20,7 @@ var $ = {
 		var i=$.gfx.length,j,m,x,y;
 		while(i--) {
 			$.gfx[i][5] = document.createElement("canvas");
-			$.gfx[i][5].width = $.gfx[i][0];
+			$.gfx[i][5].width = $.gfx[i][0] * $.gfx[i][2];
 			$.gfx[i][5].height = $.gfx[i][1];
 			$.gfx[i][6] = $.gfx[i][5].getContext("2d");
 
@@ -95,12 +95,12 @@ var $ = {
 				4: update (function)
 				5: init (function)
 		*/
-		[
+		[ // blank entity
 			[],
 			[],
 			[0,0],
 			[0, 0]
-		],
+		], // blank entity
 		[ // sky
 			[],
 			[],
@@ -111,7 +111,7 @@ var $ = {
 			[
 				0, 0, 1280, 720
 			]
-		],
+		], // sky
 		[ // world
 			[],
 			[],
@@ -121,7 +121,7 @@ var $ = {
 			[
 				0, 0, 8192, 1408, 1
 			]
-		],
+		], // world
 		[ // player container
 			[
 				1,    //0: dir
@@ -140,37 +140,50 @@ var $ = {
 						5, // 0: moving speed
 						6, // 1: max moving distance
 						1, // 2: moving direction (1 up, -1 down)
-						0  // 3: player direction
+						0, // 3: player direction
+						0, // 4: player vel_x normalized
+						1  // 5: animation direction
 					],
 					[
 						[ // player face GFX
 							[
 								6,    // 0: base x,
 								0,    // 1: delta x
-								5,    // 2: face move distance
-								0.5  // 3: face move speed
+								24,   // 2: base y,
+								0,    // 3: delta y
+								5,    // 4: face move distance
+								0.5   // 5: face move speed
 							],
 							[],
 							[
 								4, 0
 							],
 							[
-								6, 16, 20, 20
+								6, 24, 20, 12
 							],
 							function(self, parent) {
 
 								if (parent[0][3] > 0)
-									self[0][1] = $.utils.clamp(self[0][1] + self[0][3], 0, self[0][2]);
+									self[0][1] = $.utils.clamp(self[0][1] + self[0][5], 0, self[0][4]);
 								else if (parent[0][3] < 0)
-									self[0][1] = $.utils.clamp(self[0][1] - self[0][3], -self[0][2]);
+									self[0][1] = $.utils.clamp(self[0][1] - self[0][5], -self[0][4]);
 								else
-									self[0][1] = self[0][1] ? $.utils.clamp(Math.abs(self[0][1]) - self[0][3], 0) * Math.abs(self[0][1]) / self[0][1] : 0;
+									self[0][1] = self[0][1] ? $.utils.clamp(Math.abs(self[0][1]) - self[0][5], 0) * Math.abs(self[0][1]) / self[0][1] : 0;
 
 								self[3][0] = self[0][0] + self[0][1];
 
+								if (parent[0][4] > 0)
+									self[0][3] = $.utils.clamp(self[0][3] + self[0][5], 0, self[0][4]);
+								else if (parent[0][4] < 0)
+									self[0][3] = $.utils.clamp(self[0][3] - self[0][5], -self[0][4]);
+								else
+									self[0][3] = self[0][3] ? $.utils.clamp(Math.abs(self[0][3]) - self[0][5], 0) * Math.abs(self[0][3]) / self[0][3] : 0;
+
+								self[3][1] = self[0][2] + self[0][3];
+
 							}
 
-						]
+						] // player face GFX
 					],
 					[
 						3, 0
@@ -180,6 +193,7 @@ var $ = {
 					],
 					function(self, parent, dt) {
 						self[0][3] = parent[0][0];
+						self[0][4] = parent[0][2] ? Math.abs(parent[0][2]) / parent[0][2] : 0;
 						if(parent[0][5]) {
 							self[3][1] += self[0][0] * self[0][2] * dt;
 
@@ -187,8 +201,14 @@ var $ = {
 								self[0][0] *= -1;
 
 						}
+
+						self[2][1] = $.utils.clamp(self[2][1] + 0.1 * self[0][5], 0, 0.9);//TODO: replace 0 in 0.9 'with number of frames - 1'
+						if( self[2][1] == 0 || self[2][1] == 0.9 )//TODO: replace 0 in 0.9 with 'number of frames - 1'
+							self[0][5] *= -1;
+
+
 					}
-				]
+				] // player body GFX
 			],
 			[
 				0, 0
@@ -259,7 +279,7 @@ var $ = {
 
 				self[0][5] = $.utils.isBoxColliding(self[3][0], self[3][1] - 1, self[3][2], 1);
 			}
-		]
+		]  // player container
 	],
 	gfx: [
 		/*
@@ -274,12 +294,12 @@ var $ = {
 				6: ctx
 
 		*/
-		[ // blank
+		[ // blank gfx
 			1,
 			1,
 			1
 			//,'X' //TODO: remove this before release (DEBUG CODE)
-		],
+		], // blank gfx
 		[ // sky
 			1280,
 			720,
@@ -296,25 +316,25 @@ var $ = {
 					self[6].fillRect(i%1280, Math.floor(i/1280), 1, 1);
 				}*/ //TODO: enable for textured background
 			}
-		],
+		], // sky
 		[ // world
 			128,
 			22,
 			1,
 			'b25.a4.b5.a4.b3.a2.b2.a.b2.a2.b12.a2.b14.a55.b20.a4.b5.a4.b3.a2.b2.a.b2.a2.b12.a3.b14.a57.b17.a4.b5.a4.b3.a2.b2.a.b2.a2.b12.a14.b3.a60.b14.a4.b5.a4.b3.a2.b2.a.b2.a2.b12.a15.b2.a92.b2.a.b2.a2.b12.a5.b7.a4.b.a92.b2.a.b2.a2.b12.a5.b4.a7.b.a65.b3.a27.b2.a2.b12.a4.b4.a7.b3.a94.b2.a2.b12.a4.b4.a4.b7.a68.b3.a27.b11.a4.b5.a6.b4.a101.b8.a3.b7.a5.b5.a72.b3.a30.b3.a3.b17.a111.b17.a67.b3.a7.b3.a32.b16.a62.b3.a34.b3.a2.b2.a7.b14.a83.b3.a12.b10.a8.b11.a98.b11.a108.b3.a3.b.a2.b12.a376.b8.a117.b11.a116.b12.a66'
-		],
+		], // world
 		[ // player body
 			16,
 			23,
-			1,
-			'a6.b4.a12.b.e2.b.a6.b3.a.b3.e2.b3.a.b4.e.b.a.b.e6.b.a.b.e.b2.e.b3.e6.b3.e.b2.e14.b2.e14.b2.e14.b2.e14.b2.e14.b2.e14.b2.e14.b2.e14.b2.e14.b2.e14.b2.e14.b2.e14.b2.e14.b2.e14.b2.e14.b4.e10.b3.a2.b.e10.b.a4.b12.a2'
-		],
+			3,
+			'a6.b4.a12.b.e2.b.a6.b3.a.b3.e2.b3.a.b4.e.b.a.b.e6.b.a.b.e.b2.e.b3.e6.b3.e.b2.e14.b2.e14.b2.e14.b2.e14.b2.e14.b2.e14.b2.e14.b2.e14.b2.e14.b2.e14.b2.e14.b2.e14.b2.e14.b2.e14.b2.e14.b4.e10.b3.a2.b.e10.b.a4.b12.a18.b3.a3.b4.a3.b4.e.b.a3.b.e2.b.a3.b.e.b2.e.b.a.b3.e2.b3.a.b.e.b2.e.b3.e6.b3.e.b2.e14.b2.e14.b2.e14.b2.e14.b2.e14.b2.e14.b2.e14.b2.e14.b2.e14.b2.e14.b2.e14.b2.e14.b2.e14.b2.e14.b2.e14.b4.e10.b3.a2.b.e10.b.a4.b12.a18.b4.a8.b5.e2.b.a2.b4.a2.b.e2.b2.e2.b.a2.b.e2.b.a2.b.e2.b2.e2.b4.e2.b4.e2.b2.e14.b2.e14.b2.e14.b2.e14.b2.e14.b2.e14.b2.e14.b2.e14.b2.e14.b2.e14.b2.e14.b2.e14.b2.e14.b2.e14.b2.e14.b4.e10.b3.a2.b.e10.b.a4.b12.a2'
+		], // player body
 		[ // player faces
 			10,
-			10,
+			6,
 			1,
-			'a2.b6.a4.b6.a4.b6.a4.b6.a4.b6.a4.b6.a22.b2.a6.b4.a6.b2'
-		]
+			'a4.b2.a8.b2.a24.b4.a2.b8.a2.b4'
+		]  // player faces
 	],
 	colors: {
 		'a': 'transparent',
@@ -348,7 +368,7 @@ var $ = {
 		for(var i=0;i<e.length;i++){
 			$.ctx.drawImage(
 				$.gfx[ e[i][2][0] ][5],
-				$.gfx[ e[i][2][0] ][0] * e[i][2][1],
+				$.gfx[ e[i][2][0] ][0] * Math.floor(e[i][2][1]),
 				0,
 				$.gfx[ e[i][2][0] ][0],
 				$.gfx[ e[i][2][0] ][1],
