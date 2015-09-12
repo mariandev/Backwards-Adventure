@@ -6,8 +6,20 @@ var $ = {
     score: 100,
     last_score: 100,
 
+    level: 4,
+    exp: 100,
+    exp_per_level: [10, 25, 50, 100],
+
+    downgrade_check: 0,
+
+    jump_level: 5,
+    speed_level: 5,
+
+    jump_levels: [1, 1.1, 1.25, 1.45],
+    speed_levels: [1, 1.1, 1.25, 1.45],
+
     bs: 64,
-    pr: 6,
+    pr: 8,
 
     init: function() {
         $.cnv = document.getElementById('c');
@@ -27,8 +39,10 @@ var $ = {
                 e.pageX - $.cnv.offsetLeft,
                 540 - e.pageY + $.cnv.offsetTop,
                 $.entities,
+                [],
                 0,
-                0
+                0,
+                ''
             );
         });
 
@@ -137,7 +151,7 @@ var $ = {
             [],
             [],
             [
-                2, 0, 0.5
+                2, 0, 0.25
             ],
             [
                 0, 0, 8192, 1408, 1
@@ -203,7 +217,12 @@ var $ = {
                 6,
                 -1
             ],
-            [,0,16,20]
+            [,0,16,20,0,1],
+            function(){},
+            function(self) {
+                self[3][2] *= self[3][5];
+                self[3][3] *= self[3][5];
+            }
         ], // 4: character
         [  // 5: text
             [
@@ -218,18 +237,22 @@ var $ = {
                 1
             ],
             [
-                0, 0, 0, 5
+                0, 0, 0, 0, 0, 1
             ],
             function(self, parent, dt) {
 
                 self[0][1](self, dt);
                 if(self[0][0] != self[0][2]) {
                     self[1].splice(0, self[0][2].length);
-                    for(var i=0;i<self[0][0].length;i++)
-                        self[1].unshift($.utils.merge($.utils.clone($.entities[4]), [
-                            ,,[,('abcdefghijklmnopqrstuvwxyz0123456789/:><-+').indexOf(self[0][0][i])], [($.entities[4][3][2] + 2) * i]
-                        ]));
-                    self[3][2] = ($.entities[4][3][2] + 2) * i;
+                    for(var i= 0,e;i<self[0][0].length;i++) {
+                        e = $.utils.merge($.utils.clone($.entities[4]), [
+                            ,,[,('abcdefghijklmnopqrstuvwxyz0123456789/:><-+?!').indexOf(self[0][0][i])], [($.entities[4][3][2] * self[3][5] + 2) * i,,,,,self[3][5]]
+                        ]);
+                        if(e[5]) e[5](e);
+                        self[1].unshift(e);
+                    }
+                    self[3][2] = ($.entities[4][3][2] * self[3][5] + 2) * i;
+                    self[3][3] =  $.entities[4][3][3] * self[3][5];
 
                     self[0][2] = self[0][0];
 
@@ -237,7 +260,65 @@ var $ = {
 
             }
         ], // 5: text
-        [  // 6: player container
+        [  // 6: particle
+            [0,0,0],
+            [],
+            [0,0],
+            [0,0,0,0],
+            function(self, parent, dt) {
+                self[0][0] -= dt;
+                self[3][0] += self[0][1] * dt;
+                self[3][1] += self[0][2] * dt;
+            }
+        ], // 6: particle
+        [  // 7: particle source
+            [
+                100,   // 0: particles per second
+                2,     // 1: max lifespan
+                2,     // 2: w
+                2,     // 3: h
+                ['b', 'c', 'd', 'e'], // 4: colors
+                0.1,     // 5: min opacity
+                0.5,     // 6: max opacity,
+                -10,     // 7: min velocity x
+                10,     // 8: max velocity x
+                -10,     // 9: min velocity y
+                10      // 10: max velocity y
+            ],
+            [],
+            [0,0],
+            [0,0,960,540],
+            function(self, parent, dt) {
+                var i = 0;
+                for (; i < self[1].length; i++)
+                    if (self[1][i][0][0] <= 0)
+                        self[1].splice(i--, 1);
+
+                i=Math.round(Math.random() * self[0][0] * dt);
+                while(i--)
+                    self[1].push(
+                        $.utils.merge($.utils.clone($.entities[6]),[
+                            [
+                                Math.random() * self[0][1],
+                                Math.random() * (self[0][8] - self[0][7]) + self[0][7],
+                                Math.random() * (self[0][10] - self[0][9]) + self[0][9]
+                            ],,
+                            [
+                                ({'b': 7, 'c': 8, 'd': 9, 'e': 8})[ self[0][4][ Math.floor(Math.random() * self[0][4].length) ] ],
+                                0,
+                                Math.random() * (self[0][6] - self[0][5]) + self[0][5]
+                            ],[
+                                Math.random() * self[3][2],
+                                Math.random() * self[3][3],
+                                self[0][2],
+                                self[0][3]
+                            ]
+                        ])
+                    );
+
+            }
+        ], // 7: particle source
+        [  // 8: player container
             [
                 1,    //0: dir
                 0,    //1: vel_x
@@ -250,7 +331,7 @@ var $ = {
                 0     //8: frame float
             ],
             [
-                [ // 6,0: player body GFX
+                [ // 8,0: player body GFX
                     [
                         5, // 0: moving speed
                         6, // 1: max moving distance
@@ -260,11 +341,11 @@ var $ = {
                         1  // 5: animation direction
                     ],
                     [
-                        [ // 6,0,0: player face GFX
+                        [ // 8,0,0: player face GFX
                             [
                                 6,    // 0: base x,
                                 0,    // 1: delta x
-                                24,   // 2: base y,
+                                22,   // 2: base y,
                                 0,    // 3: delta y
                                 5,    // 4: face move distance
                                 0.5   // 5: face move speed
@@ -274,7 +355,7 @@ var $ = {
                                 4, 0
                             ],
                             [
-                                6, 24, 20, 12
+                                6, 22, 20, 12
                             ],
                             function(self, parent) {
 
@@ -298,7 +379,7 @@ var $ = {
 
                             }
 
-                        ] // 6,0,0: player face GFX
+                        ] // 8,0,0: player face GFX
                     ],
                     [
                         3, 0
@@ -317,13 +398,13 @@ var $ = {
 
                         }
 
-                        self[2][1] = $.utils.clamp(self[2][1] + 0.1 * self[0][5], 0, 0.9);//TODO: replace 0 in 0.9 'with number of frames - 1'
+                        /*self[2][1] = $.utils.clamp(self[2][1] + 0.1 * self[0][5], 0, 0.9);//TODO: replace 0 in 0.9 'with number of frames - 1'
                         if( self[2][1] == 0 || self[2][1] == 0.9 )//TODO: replace 0 in 0.9 with 'number of frames - 1'
-                            self[0][5] *= -1;
+                            self[0][5] *= -1;*/
 
 
                     }
-                ] // 6,0: player body GFX
+                ] // 8,0: player body GFX
             ],
             [
                 0, 0
@@ -395,15 +476,14 @@ var $ = {
 
                 self[0][5] = $.utils.isBoxColliding(self[3][0], self[3][1] - 1, self[3][2], 1, 2, $.bs) === 1 ? 1 : 0;
             }
-        ], // 6: player container
-        [  // 7: score
+        ], // 8: player container
+        [  // 9: score
             '5',
             [,
                 function(self) {
 
                     if($.last_score != $.score) {
                         var diff = ($.score - $.last_score) + '';
-                        console.log(diff);
                         $.last_score = $.score;
                         self[1].push(
                             $.utils.merge($.utils.clone($.entities[5]), [
@@ -411,16 +491,338 @@ var $ = {
                                     self[2][2] -= 2 * dt;
                                     self[2][2] = $.utils.clamp(self[2][2], 0);
                                     self[3][1] += 40 * dt;
-                                }],,,[self[3][2]-($.entities[4][3][2]+2)*diff.length, 5]
+                                }],,,[($.entities[4][3][2] * self[3][5]+2)*(4 - diff.length), 5,,,0, self[3][5]]
                             ])
                         );
                     }
 
-                    self[0][0] = 'score: ' + ($.score < 1000 ? ' ' : '') + ($.score < 100 ? ' ' : '') + $.score;
+                    self[0][0] = ($.score < 1000 ? '0' : '') + ($.score < 100 ? '0' : '') + $.score + ' points';
+                    self[3][0] = 960 - 10 - ($.entities[4][3][2] * self[3][5] + 2) * self[0][0].length;
+                }
+            ],,,
+            [,10]
+        ], // 9: score
+        [  // 10: level
+            '5',
+            [,
+                function(self) {
+                    self[0][0] = 'level ' + $.level;
+                }
+            ],,,
+            [10,40]
+        ], // 10: level
+        [  // 11: exp
+            '5',
+            [,
+                function(self) {
+                    self[0][0] = 'exp ' + $.exp + '/' + $.exp_per_level[$.level-1];
                 }
             ],,,
             [10,10]
-        ]  // 7: score
+        ], // 11: exp
+        [  // 12: disappearing blocks
+            ,
+            [
+                [  // 10,0: block
+                    [
+                        1,
+                        0,
+                        1
+                    ],
+                    [
+                        [
+                            '7',
+                            [
+                                200,
+                                0.2,
+                                2,
+                                2,
+                                ['b','c','d','e'],
+                                0.25,
+                                0.5,
+                                0,
+                                0,
+                                -150,
+                                -150
+                            ],,,
+                            [0,0,,,0]
+                        ]
+                    ],
+                    [
+                        7,
+                        0,
+                        0.25
+                    ],[],
+                    function(self, parent, dt) {
+                        self[0][0] -= 0.75 * dt;
+                        if(self[0][0] > 1) {
+                            $.gfx[2][3][ self[0][2] ][ self[0][1] ] = 0;
+                            self[3][1] = (self[0][2]+1) * $.bs;
+                            self[3][3] = 0;
+
+                            self[1][0][0][0] = 0;
+
+                        }else if(self[0][0] >= 0) {
+                            $.gfx[2][3][ self[0][2] ][ self[0][1] ] = 1;
+                            self[3][1] = ( self[0][2] + 1 - self[0][0] ) * $.bs;
+                            self[3][3] = $.bs * self[0][0];
+
+                            self[1][0][0][0] = 200;
+
+                        }else {
+                            self[0][0] = 2;
+                        }
+
+                        self[1][0][3][2] = self[3][2];
+                        self[1][0][3][3] = 1;
+
+                    },
+                    function(self) {
+                        self[3][0] = self[0][1] * $.bs;
+                        self[3][1] = self[0][2] * $.bs;
+                        self[3][2] = self[3][3] = $.bs;
+                    }
+                ]  // 10,0: block
+            ],
+            [0,0],
+            [0,0,0,0,1]
+        ], // 12: disappearing blocks
+        [  // 13: stats gui
+            [
+                0,
+                0,
+                640//135
+            ],
+            [
+                [
+                    [
+                        0,
+                        0,
+                        640
+                    ],
+                    [],
+                    [
+                        8,
+                        0,
+                        0.5
+                    ],
+                    [
+                        10, 10, 460, 250
+                    ]
+                ],
+                [
+                    '5',
+                    ['level down!'],,,
+                    [130,190,,,,1.25]
+                ],
+                [
+                    '5',
+                    [
+                        '',
+                        function(self) {
+                            self[0][0] = 'you have reached level ' + $.level;
+                        }
+                    ],,,
+                    [125,160,,,,0.5]
+                ],
+                [
+                    '5',
+                    ['please downgrade'],,,
+                    [130,90,,,,0.8]
+                ],
+                [
+                    '5',
+                    [
+                        'jump',
+                        function(self) {
+                            if(!$.jump_level)
+                                self[2][2] = 0.5
+                        }
+                    ],,,
+                    [130,50,,,,0.8],,
+                    function (self) {
+                        console.log("INIT JUMP");
+                        $.input.addClickListener(self);
+                    },
+                    function(self, parent) {
+                        console.log('JUMP');
+                        if($.downgrade_check) {
+                            $.downgrade_check = 0;
+                            $.jump_level--;
+                            parent[0][2] = 640;
+                            parent[0][0] = 1;
+                        }
+                    }
+                ],
+                [
+                    '5',
+                    ['or'],,,
+                    [230,50,,,,0.8]
+                ],
+                [
+                    '5',
+                    [
+                        'speed',
+                        function(self) {
+                            if(!$.speed_level)
+                                self[2][2] = 0.5
+                        }
+                    ],,,
+                    [290,50,,,,0.8],,
+                    function (self) {
+                        console.log("INIT SPEED");
+                        $.input.addClickListener(self);
+                    },
+                    function(self, parent) {
+                        console.log('SPEED');
+                        if($.downgrade_check) {
+                            $.downgrade_check = 0;
+                            $.speed_level--;
+                            parent[0][2] = 640;
+                            parent[0][0] = 1;
+                        }
+                    }
+                ]
+            ],
+            [
+                7,
+                0,
+                0.5
+            ],
+            [
+                240,
+                640,
+                480,
+                270
+            ],
+            function(self, parent, dt) {
+                if( self[0][0] ) {
+                    if(self[3][1] <= self[0][2]) {
+                        self[0][1] += 1500 * dt;
+                        self[3][1] += self[0][1] * dt;
+                    }else {
+                        self[0][1] = 0;
+                        self[3][1] = self[0][2]
+                    }
+                }else {
+                    if(self[3][1] >= self[0][2]) {
+                        self[0][1] -= 1500 * dt;
+                        self[3][1] += self[0][1] * dt;
+                    }else {
+                        self[0][1] = 0;
+                        self[3][1] = self[0][2]
+                    }
+                }
+            }
+        ], // 13: stats gui
+        [  // 14: flags
+            [],
+            [
+                [ // 14,0: flag
+                    [
+                        0
+                    ],
+                    [],
+                    [
+                        11,
+                        0
+                    ],
+                    [
+                        5 * 64,
+                        4 * 64,
+                        64,
+                        64,
+                        1
+                    ],
+                    function(self, parent, dt) {
+                        if($.utils.isBoxColliding($.entities[$.pr][3][0], $.entities[$.pr][3][1], $.entities[$.pr][3][2], $.entities[$.pr][3][3], 2, $.bs) === 5 &&
+                            Math.floor( ( $.entities[$.pr][3][0] + $.entities[$.pr][3][2] / 2 ) / $.bs ) == Math.floor(self[3][0] / $.bs) &&
+                            self[0][0] != 1
+                        ) {
+                            self[0][0] = 1;
+                        }
+
+                        if(self[0][0] == 1) {
+                            self[3][3] = $.utils.clamp(self[3][3] - 100 * dt, 0);
+                        }
+
+                    }
+                ], // 14,0: flag
+                /*[ '3,0',,,, [8.25 * 64, 5.25 * 64] ],
+                [ '3,0',,,, [11.25 * 64, 6.25 * 64] ]*/
+            ],
+            [
+                0,
+                0
+            ],
+            [
+                0,
+                0,
+                0,
+                0
+            ],
+            function(self, parent, dt) {}
+        ], // 14: flags
+        [  // 15: exp orbs
+            [],
+            [
+                [ // 15,0: exp orb
+                    [
+                        0
+                    ],
+                    [],
+                    [
+                        12,
+                        0
+                    ],
+                    [
+                        6.25 * 64,
+                        4.25 * 64,
+                        32,
+                        32,
+                        1
+                    ],
+                    function(self, parent, dt) {
+                        if($.utils.isBoxColliding($.entities[$.pr][3][0], $.entities[$.pr][3][1], $.entities[$.pr][3][2], $.entities[$.pr][3][3], 2, $.bs) === 5 &&
+                            Math.floor( ( $.entities[$.pr][3][0] + $.entities[$.pr][3][2] / 2 ) / $.bs ) == Math.floor(self[3][0] / $.bs) &&
+                            Math.floor( ( $.entities[$.pr][3][1] + $.entities[$.pr][3][3] / 2 ) / $.bs ) == Math.floor(self[3][1] / $.bs) && self[2][1] != 1
+                        ) {
+                            $.exp -= 5;
+                            self[2][1] = 1;
+                        }
+
+                        if(self[2][1] != 1) {
+                            self[0][0] += dt;
+                            if(self[0][0] >= 0.75) {
+                                self[0][0] = 0;
+                                self[2][1] = self[2][1] ? 0 : -1;
+                            }
+                        }else {
+                            if($.exp <= 0) {
+                                $.exp = $.exp_per_level[--$.level];
+                                $.downgrade_check = 1;
+                                $.entities[13][0][0] = 0;
+                                $.entities[13][0][2] = 135;
+                            }
+                        }
+
+                    }
+                ], // 15,0: exp orb
+                /*[ '3,0',,,, [8.25 * 64, 5.25 * 64] ],
+                [ '3,0',,,, [11.25 * 64, 6.25 * 64] ]*/
+            ],
+            [
+                0,
+                0
+            ],
+            [
+                0,
+                0,
+                0,
+                0
+            ],
+            function(self, parent, dt) {}
+        ], // 15: exp orbs
     ],
     gfx: [
         /*
@@ -480,14 +882,50 @@ var $ = {
             16,
             16,
             2,
-            'a5.b4.c2.a8.b2.a6.b2.a5.c.a10.c.a3.b.a12.b.a2.b.a12.b.a.c.a14.c2.a14.c.b.a14.b2.a14.b.c.a14.c2.a14.c.a.b.a12.b.a2.b.a12.b.a3.c.a10.c.a5.b2.a6.b2.a8.c2.b2.c2.a10.c6.a8.c4.d2.e2.c2.a5.c.b.c.d6.e2.c.a3.c.b.c.d9.e.c.a2.c.b.c.d9.e.c.a.c.b.c.d4.b2.c.d4.e.c2.b.c.d3.b.d3.c.d3.e.c2.b.c.d3.b.d7.e.c2.b.c.d3.b.d7.e.c2.b.c.d3.b.d3.c.d3.e.c2.b.c.d4.b2.c.d4.e.c.a.c.b.c.d9.e.c.a2.c.b.c.d9.e.c.a3.c.b.c.d6.e2.c.a5.c4.d2.e2.c2.a8.c6.a5'
+            'a5.c6.a8.c2.a6.c2.a5.c.a10.c.a3.c.a12.c.a2.c.a12.c.a.c.a14.c2.a14.c2.a14.c2.a14.c2.a14.c2.a14.c.a.c.a12.c.a2.c.a12.c.a3.c.a10.c.a5.c2.a6.c2.a8.c6.a10.b6.a8.b4.d2.e2.b2.a5.b.c.b.d6.e2.b.a3.b.c.b.d9.e.b.a2.b.c.b.d9.e.b.a.b.c.b.d4.c2.b.d4.e.b2.c.b.d3.c.d3.b.d3.e.b2.c.b.d3.c.d7.e.b2.c.b.d3.c.d7.e.b2.c.b.d3.c.d3.b.d3.e.b2.c.b.d4.c2.b.d4.e.b.a.b.c.b.d9.e.b.a2.b.c.b.d9.e.b.a3.b.c.b.d6.e2.b.a5.b4.d2.e2.b2.a8.b6.a5'
         ], // 5: coin
         [  // 6: font
             4,
             5,
-            42,
-            'e.a2.e2.a2.e6.a2.e.a.e2.a.e3.a.e.a2.e4.a.e.a2.e4.a2.e4.a3.e.a3.e.a4.e6.a.e.a2.e2.a2.e2.a2.e4.a.e5.a3.e3.a.e.a3.e5.a3.e.a3.e3.a.e.a3.e4.a.e4.a2.e2.a.e3.a4.e4.a2.e2.a2.e6.a2.e2.a2.e.a2.e.a3.e.a3.e.a3.e.a3.e.a2.e2.a.e.a2.e.a3.e.a3.e.a3.e2.a2.e2.a.e.a.e2.a2.e.a.e.a.e.a2.e4.a.e.a3.e.a3.e.a3.e.a3.e.a2.e2.a2.e2.a2.e6.a2.e2.a2.e2.a2.e2.a.e4.a.e2.a2.e.a.e2.a.e.a2.e2.a2.e2.a2.e.a.e2.a.e.a3.e.a3.e3.a.e.a2.e4.a2.e4.a.e3.a2.e2.a2.e.a.e2.a.e.a2.e2.a.e.a.e3.a.e.a2.e4.a.e3.a4.e.a.e2.a.e.a4.e3.a.e.a3.e.a3.e.a3.e.a2.e3.a.e5.a2.e2.a2.e2.a2.e2.a2.e.a.e2.a.e.a2.e2.a2.e2.a2.e2.a2.e.a.e2.a.e5.a2.e2.a2.e2.a2.e2.a2.e.a.e2.a2.e2.a.e.a2.e2.a2.e.a.e.a3.e.a2.e3.a.e.a.e.a.e.a.e.a.e4.a.e.a4.e.a4.e5.a.e2.a.e.a2.e2.a2.e2.a2.e.a.e2.a3.e.a3.e.a3.e.a2.e2.a3.e.a.e4.a.e.a4.e.a.e.a2.e.a.e2.a.e3.a4.e.a.e3.a3.e4.a4.e.a3.e.a.e4.a2.e2.a2.e4.a4.e4.a.e.a3.e4.a.e2.a.e.a2.e4.a.e.a4.e3.a.e.a3.e.a4.e.a4.e10.a2.e6.a2.e8.a4.e.a.e4.a2.e.a.e2.a.e.a4.e.a4.e.a4.e.a9.e.a7.e.a6.e.a4.e.a4.e.a2.e.a2.e.a6.e.a2.e.a2.e.a4.e.a4.e.a8.e3.a14.e.a2.e3.a2.e.a6'
-        ]  // 6: font
+            44,
+            'e.a2.e2.a2.e6.a2.e.a.e2.a.e3.a.e.a2.e4.a.e.a2.e4.a2.e4.a3.e.a3.e.a4.e6.a.e.a2.e2.a2.e2.a2.e4.a.e5.a3.e3.a.e.a3.e5.a3.e.a3.e3.a.e.a3.e4.a.e4.a2.e2.a.e3.a4.e4.a2.e2.a2.e6.a2.e2.a2.e.a.e.a3.e.a3.e.a3.e.a3.e.a3.e2.a.e.a2.e.a3.e.a3.e.a3.e2.a2.e2.a.e.a.e2.a2.e.a.e.a.e.a2.e4.a.e.a3.e.a3.e.a3.e.a3.e.a2.e2.a2.e2.a2.e6.a2.e2.a2.e2.a2.e2.a.e4.a.e2.a2.e.a.e2.a.e.a2.e2.a2.e2.a2.e.a.e2.a.e.a3.e.a3.e3.a.e.a2.e4.a2.e4.a.e3.a2.e2.a2.e.a.e2.a.e.a2.e2.a.e.a.e3.a.e.a2.e4.a.e3.a4.e.a.e2.a.e.a4.e3.a.e.a3.e.a3.e.a3.e.a2.e3.a.e5.a2.e2.a2.e2.a2.e2.a2.e.a.e2.a.e.a2.e2.a2.e2.a2.e2.a2.e.a.e2.a.e5.a2.e2.a2.e2.a2.e2.a2.e.a.e2.a2.e2.a.e.a2.e2.a2.e.a.e.a3.e.a2.e3.a.e.a.e.a.e.a.e.a.e4.a.e.a4.e.a4.e5.a.e2.a.e.a2.e2.a2.e2.a2.e.a.e2.a3.e.a3.e.a3.e.a2.e2.a3.e.a.e4.a.e.a4.e.a.e.a2.e.a.e2.a.e3.a4.e.a.e3.a3.e4.a4.e.a3.e.a.e4.a2.e2.a2.e4.a4.e4.a.e.a3.e4.a.e2.a.e.a2.e4.a.e.a4.e3.a.e.a3.e.a4.e.a4.e10.a2.e6.a2.e8.a4.e.a.e4.a2.e.a.e2.a.e.a4.e.a4.e.a4.e.a9.e.a7.e.a6.e.a4.e.a4.e.a2.e.a2.e.a6.e.a2.e.a2.e.a4.e.a4.e.a8.e3.a14.e.a2.e3.a2.e.a8.e.a7.e.a.e.a2.e.a.e2.a2.e.a7.e.a3.e.a3.e.a2'
+        ], // 6: font
+        [  // 7: block / particle color b
+            1,
+            1,
+            1,
+            'b'
+        ], // 7: block / particle color b
+        [  // 8: particle color c
+            1,
+            1,
+            1,
+            'c'
+        ], // 8: particle color c
+        [  // 9: particle color d
+            1,
+            1,
+            1,
+            'd'
+        ], // 9: particle color d
+        [  // 10: particle color e
+            1,
+            1,
+            1,
+            'e'
+        ], // 10: particle color e
+        [  // 11: flag
+            32,
+            32,
+            1,
+            'a14.b2.a30.b2.a30.b2.a30.b2.a30.b2.a30.b2.a30.b2.a30.b2.a30.b2.a30.b2.a30.b2.a30.b2.a30.b2.a30.b2.a30.b2.a30.b2.a30.b2.a30.b2.a30.b2.a30.b2.a4.f.d5.a20.b2.f2.d.f.d5.e.d.e3.a16.b2.f3.d.f.d5.e.d.e2.a16.b2.f2.d.f.d5.e.d.e3.a16.b2.f3.d.f.d5.e.d.e2.a16.b2.f2.d.f.d5.e.d.e3.a16.b2.f3.d.f.d5.e.d.e2.a16.b2.f2.d.f.d5.e.d.e3.a16.b2.f3.d.f.d5.e.d.e2.a16.b2.f2.d.f.d5.e.d.e3.a16.b2.f3.d.a6.e.d.e2.a66'
+        ], // 11: flag
+        [  // 12: exp
+            16,
+            16,
+            2,
+            'a7.c2.a13.c.a2.c.a11.c.a4.c.a9.c.a6.c.a7.c.a8.c.a5.c.a10.c.a3.c.a12.c.a.c.a14.c2.a14.c.a.c.a12.c.a3.c.a10.c.a5.c.a8.c.a7.c.a6.c.a9.c.a4.c.a11.c.a2.c.a13.c2.a14.c.e.a13.c.d2.e.a11.c.d4.e.a9.c.d6.e.a7.b.d8.e.a5.b.d4.c2.b.d3.e.a3.b.d4.c.d7.e.a.b.d5.c2.b.d6.e.b.d5.c.d8.e.a.b.d5.c2.b.d4.e.a3.b.d10.e.a5.b.d8.e.a7.c.d6.e.a9.c.d4.e.a11.c.d2.e.a13.c.e.a7'
+        ]  // 12: exp
     ],
     colors: {
         'a': 'transparent',
@@ -574,7 +1012,7 @@ var $ = {
         addClickListener: function(el) {
             $.input.clickListeners.push(el);
         },
-        click: function(mx, my, e, gx, gy) {
+        click: function(mx, my, e, p, gx, gy, d) {
             for(var i=0;i<e.length;i++) {
 
                 if($.input.clickListeners.indexOf(e[i]) >= 0 &&
@@ -582,10 +1020,12 @@ var $ = {
                     gx + e[i][3][0] + e[i][3][2] >= mx &&
                     gy + e[i][3][1] <= my &&
                     gy + e[i][3][1] + e[i][3][3] >= my
-                )
-                    e[i][6](e[i]);
-
-                $.input.click(mx, my, e[i][1], gx + e[i][3][0], gy + e[i][3][1]);
+                ) {
+                    e[i][6](e[i], p);
+                    //console.log(gx + ' x ' + gy);
+                    //console.log(mx + ' x ' + my);
+                }
+                $.input.click(mx, my, e[i][1], e[i], gx + e[i][3][0], gy + e[i][3][1], d+','+i);
 
             }
         }
@@ -670,29 +1110,16 @@ var $ = {
             return mixin(r, src, $.utils.clone);
         },
         merge: function(a, b) {
-            for(var i=0;i<4;i++)
-                if(b[i] !== undefined)
-                    for (var j = 0; j < b[i].length; j++)
-                        if (b[i][j] !== undefined)
-                            a[i][j] = b[i][j];
-            return a;
-        }
-    },
-    debug: {
-        getActualPosition: function(el, e, x, y) {
-            if(!e) e = $.entities;
-            if(!x) x = 0;
-            if(!y) y = 0;
-            for(var i=0;i<e.length;i++) {
-                if (e[i] === el)
-                    return ( x + el[3][0] + ( el[3][4] ? 0 : 0 ) ) + ' x ' + ( y + el[3][1] + ( el[3][4] ? 0 : 0 ) );
-                else {
-                    var t = $.debug.getActualPosition(el, e[i][1], x + el[3][0], y + el[3][1]);
-                    if(t)
-                        return t;
+            for(var i=0;i< b.length;i++)
+                if(b[i] !== undefined) {
+                    if(typeof b[i] != 'object')
+                        a[i] = b[i];
+                    else
+                        for (var j = 0; j < b[i].length; j++)
+                            if (b[i][j] !== undefined)
+                                a[i][j] = b[i][j];
                 }
-            }
-            return false;
+            return a;
         }
     }
 };
