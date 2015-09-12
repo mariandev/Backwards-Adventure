@@ -4,6 +4,7 @@ var $ = {
     lts: null,
 
     score: 100,
+    last_score: 100,
 
     bs: 64,
     pr: 6,
@@ -20,6 +21,15 @@ var $ = {
         });
         document.body.addEventListener('keyup', function(e) {
             $.input.up(e);
+        });
+        $.cnv.addEventListener('click', function(e) {
+            $.input.click(
+                e.pageX - $.cnv.offsetLeft,
+                540 - e.pageY + $.cnv.offsetTop,
+                $.entities,
+                0,
+                0
+            );
         });
 
         var i=$.gfx.length,j,m,x,y;
@@ -78,7 +88,6 @@ var $ = {
                     ce = ce[1][cs[j]];
                 e[i] = $.utils.merge($.utils.clone(ce), e[i].splice(1));
             }
-            console.log(e[i]);
             if(e[i][5])
                 e[i][5](e[i]);
             $.init_entities(e[i][1]);
@@ -128,7 +137,7 @@ var $ = {
             [],
             [],
             [
-                2, 0
+                2, 0, 0.5
             ],
             [
                 0, 0, 8192, 1408, 1
@@ -194,34 +203,35 @@ var $ = {
                 6,
                 -1
             ],
-            [,0,8,10]
+            [,0,16,20]
         ], // 4: character
         [  // 5: text
             [
                 '',
-                function(self) {return self[0][0];},
                 function() {},
                 ''
             ],
             [],
             [
                 0,
-                0
+                0,
+                1
             ],
             [
-                0, 0, 0, 0
+                0, 0, 0, 5
             ],
             function(self, parent, dt) {
 
-                self[0][0] = self[0][1](self);
-                if(self[0][0] != self[0][3]) {
-                    self[1] = [];
+                self[0][1](self, dt);
+                if(self[0][0] != self[0][2]) {
+                    self[1].splice(0, self[0][2].length);
                     for(var i=0;i<self[0][0].length;i++)
-                        self[1][i] = $.utils.merge($.utils.clone($.entities[4]), [
-                            ,,[,('abcdefghijklmnopqrstuvwxyz0123456789/:><').indexOf(self[0][0][i])], [(8 + 1) * i]
-                        ]);
+                        self[1].unshift($.utils.merge($.utils.clone($.entities[4]), [
+                            ,,[,('abcdefghijklmnopqrstuvwxyz0123456789/:><-+').indexOf(self[0][0][i])], [($.entities[4][3][2] + 2) * i]
+                        ]));
+                    self[3][2] = ($.entities[4][3][2] + 2) * i;
 
-                    self[0][3] = self[0][0];
+                    self[0][2] = self[0][0];
 
                 }
 
@@ -313,15 +323,7 @@ var $ = {
 
 
                     }
-                ], // 6,0: player body GFX
-                [  // 6,1: score
-                    '5',
-                    [
-                        ,
-                        function() {return 'score: ' + $.score;}
-                    ],,,
-                    [-70,55]
-                ]  // 6,1: score
+                ] // 6,0: player body GFX
             ],
             [
                 0, 0
@@ -330,17 +332,17 @@ var $ = {
                 50, 200, 32, 52, 1
             ],
             function(self, parent, dt) {
-                if( $.input.isDown('a') || $.input.isDown('d') ) {
-                    if( $.input.isDown('a') )
+                if( $.input.isPressed('a') || $.input.isPressed('d') ) {
+                    if( $.input.isPressed('a') )
                         self[0][0] = -1;
-                    if( $.input.isDown('d') )
+                    if( $.input.isPressed('d') )
                         self[0][0] = 1;
 
                     self[0][1] = $.utils.clamp( self[0][1] + self[0][3], 0, self[0][3] );
 
                 }
 
-                if( $.input.isDown('w') && self[0][5]) {
+                if( $.input.isPressed('w') && self[0][5]) {
 
                     self[0][2] = self[0][4];
 
@@ -368,7 +370,8 @@ var $ = {
                     }else
                         self[3][1] += self[0][2] * dt;
 
-                    self[0][2] -= self[0][6] * dt;
+                    self[0][2] -= self[0][6] * ( $.input.isPressed('s') ? 4 : 1 ) * dt;
+                    self[0][2] = $.utils.clamp(self[0][2], -self[0][4], self[0][4])
 
                 }
 
@@ -392,8 +395,32 @@ var $ = {
 
                 self[0][5] = $.utils.isBoxColliding(self[3][0], self[3][1] - 1, self[3][2], 1, 2, $.bs) === 1 ? 1 : 0;
             }
-        ]  // 6: player container
+        ], // 6: player container
+        [  // 7: score
+            '5',
+            [,
+                function(self) {
 
+                    if($.last_score != $.score) {
+                        var diff = ($.score - $.last_score) + '';
+                        console.log(diff);
+                        $.last_score = $.score;
+                        self[1].push(
+                            $.utils.merge($.utils.clone($.entities[5]), [
+                                [diff, function(self, dt) {
+                                    self[2][2] -= 2 * dt;
+                                    self[2][2] = $.utils.clamp(self[2][2], 0);
+                                    self[3][1] += 40 * dt;
+                                }],,,[self[3][2]-($.entities[4][3][2]+2)*diff.length, 5]
+                            ])
+                        );
+                    }
+
+                    self[0][0] = 'score: ' + ($.score < 1000 ? ' ' : '') + ($.score < 100 ? ' ' : '') + $.score;
+                }
+            ],,,
+            [10,10]
+        ]  // 7: score
     ],
     gfx: [
         /*
@@ -425,10 +452,10 @@ var $ = {
                 g.addColorStop(1, $.colors['c']);
                 self[6].fillStyle = g;
                 self[6].fillRect(0, 0, 1280, 720);
-                /*for(var i=0;i<1280*720;i++) {
-                 self[6].fillStyle = 'rgba(255, 255, 255, ' + ( Math.random() / 10 ) + ')';
-                 self[6].fillRect(i%1280, Math.floor(i/1280), 1, 1);
-                 }*/ //TODO: enable for textured background
+                /*for(var i=0;i<960*540;i++) {
+                    self[6].fillStyle = 'rgba(255, 255, 255, ' + ( Math.random() / 50 ) + ')';
+                    self[6].fillRect(i%960, Math.floor(i/960), 2, 2);
+                }*/ //TODO: enable for textured background
             }
         ], // 1: sky
         [  // 2: world
@@ -458,8 +485,8 @@ var $ = {
         [  // 6: font
             4,
             5,
-            40,
-            'e.a2.e2.a2.e6.a2.e.a.e2.a.e3.a.e.a2.e4.a.e.a2.e4.a2.e4.a3.e.a3.e.a4.e6.a.e.a2.e2.a2.e2.a2.e4.a.e5.a3.e3.a.e.a3.e5.a3.e.a3.e3.a.e.a3.e4.a.e4.a2.e2.a.e3.a4.e4.a2.e2.a2.e6.a2.e2.a2.e.a.e.a3.e.a3.e.a3.e.a3.e.a3.e2.a.e.a2.e.a3.e.a3.e.a3.e2.a2.e2.a.e.a.e2.a2.e.a.e.a.e.a2.e4.a.e.a3.e.a3.e.a3.e.a3.e.a2.e2.a2.e2.a2.e6.a2.e2.a2.e2.a2.e2.a.e4.a.e2.a2.e.a.e2.a.e.a2.e2.a2.e2.a2.e.a.e2.a.e.a3.e.a3.e3.a.e.a2.e4.a2.e4.a.e3.a2.e2.a2.e.a.e2.a.e.a2.e2.a.e.a.e3.a.e.a2.e4.a.e3.a4.e.a.e2.a.e.a4.e3.a.e.a3.e.a3.e.a3.e.a2.e3.a.e5.a2.e2.a2.e2.a2.e2.a2.e.a.e2.a.e.a2.e2.a2.e2.a2.e2.a2.e.a.e2.a.e5.a2.e2.a2.e2.a2.e2.a2.e.a.e2.a2.e2.a.e.a2.e2.a2.e.a.e.a3.e.a2.e3.a.e.a.e.a.e.a.e.a.e4.a.e.a4.e.a4.e5.a.e2.a.e.a2.e2.a2.e2.a2.e.a.e2.a2.e.a3.e.a3.e.a2.e2.a3.e.a2.e4.a.e.a4.e.a.e.a2.e.a.e2.a.e3.a4.e.a.e3.a3.e4.a4.e.a3.e.a.e4.a2.e2.a2.e4.a4.e4.a.e.a3.e4.a.e2.a.e.a2.e4.a.e.a4.e3.a.e.a3.e.a4.e.a4.e10.a2.e6.a2.e8.a4.e.a.e4.a2.e.a.e2.a.e.a4.e.a4.e.a4.e.a9.e.a7.e.a6.e.a4.e.a4.e.a2.e.a2.e.a6.e.a2.e.a2.e.a4.e.a4.e1'
+            42,
+            'e.a2.e2.a2.e6.a2.e.a.e2.a.e3.a.e.a2.e4.a.e.a2.e4.a2.e4.a3.e.a3.e.a4.e6.a.e.a2.e2.a2.e2.a2.e4.a.e5.a3.e3.a.e.a3.e5.a3.e.a3.e3.a.e.a3.e4.a.e4.a2.e2.a.e3.a4.e4.a2.e2.a2.e6.a2.e2.a2.e.a2.e.a3.e.a3.e.a3.e.a3.e.a2.e2.a.e.a2.e.a3.e.a3.e.a3.e2.a2.e2.a.e.a.e2.a2.e.a.e.a.e.a2.e4.a.e.a3.e.a3.e.a3.e.a3.e.a2.e2.a2.e2.a2.e6.a2.e2.a2.e2.a2.e2.a.e4.a.e2.a2.e.a.e2.a.e.a2.e2.a2.e2.a2.e.a.e2.a.e.a3.e.a3.e3.a.e.a2.e4.a2.e4.a.e3.a2.e2.a2.e.a.e2.a.e.a2.e2.a.e.a.e3.a.e.a2.e4.a.e3.a4.e.a.e2.a.e.a4.e3.a.e.a3.e.a3.e.a3.e.a2.e3.a.e5.a2.e2.a2.e2.a2.e2.a2.e.a.e2.a.e.a2.e2.a2.e2.a2.e2.a2.e.a.e2.a.e5.a2.e2.a2.e2.a2.e2.a2.e.a.e2.a2.e2.a.e.a2.e2.a2.e.a.e.a3.e.a2.e3.a.e.a.e.a.e.a.e.a.e4.a.e.a4.e.a4.e5.a.e2.a.e.a2.e2.a2.e2.a2.e.a.e2.a3.e.a3.e.a3.e.a2.e2.a3.e.a.e4.a.e.a4.e.a.e.a2.e.a.e2.a.e3.a4.e.a.e3.a3.e4.a4.e.a3.e.a.e4.a2.e2.a2.e4.a4.e4.a.e.a3.e4.a.e2.a.e.a2.e4.a.e.a4.e3.a.e.a3.e.a4.e.a4.e10.a2.e6.a2.e8.a4.e.a.e4.a2.e.a.e2.a.e.a4.e.a4.e.a4.e.a9.e.a7.e.a6.e.a4.e.a4.e.a2.e.a2.e.a6.e.a2.e.a2.e.a4.e.a4.e.a8.e3.a14.e.a2.e3.a2.e.a6'
         ]  // 6: font
     ],
     colors: {
@@ -476,8 +503,10 @@ var $ = {
         window['rFA']($.loop);
 
         $.ts = Date.now();
-        if(!$.lts)
+        if(!$.lts || $.ts - $.lts > 1000/15) {
+            $.input.reset();
             $.lts = $.ts;
+        }
         $.dt = ($.ts - $.lts)/1000;
         $.lts = $.ts;
 
@@ -500,7 +529,9 @@ var $ = {
 
             var cx = x + e[i][3][0] + $.sx * ( e[i][3][4] || 0 ),
                 cy = y + e[i][3][1] + $.sy * ( e[i][3][4] || 0 );
-
+            $.ctx.save();
+            if(e[i][2][2] !== undefined)
+                $.ctx.globalAlpha = e[i][2][2];
             $.ctx.drawImage(
                 $.gfx[ e[i][2][0] ][5],
                 $.gfx[ e[i][2][0] ][0] * Math.floor(e[i][2][1]),
@@ -513,9 +544,11 @@ var $ = {
                 e[i][3][3]
             );
             $.render(e[i][1], e[i], cx, cy);
+            $.ctx.restore();
         }
     },
     input: {
+        clickListeners: [],
         keys: {
             "w": [87, 0],
             "a": [65, 0],
@@ -532,8 +565,30 @@ var $ = {
                 if(e.which == $.input.keys[key][0])
                     $.input.keys[key][1] = 0;
         },
-        isDown: function(k) {return $.input.keys[k][1];},
-        isJustPressed: function(k) {return $.input.keys[k][1] === 1;}
+        reset: function(e) {
+            for(var key in $.input.keys)
+                $.input.keys[key][1] = 0;
+        },
+        isPressed: function(k) {return $.input.keys[k][1];},
+        isDown: function(k) {return $.input.keys[k][1] === 1;},
+        addClickListener: function(el) {
+            $.input.clickListeners.push(el);
+        },
+        click: function(mx, my, e, gx, gy) {
+            for(var i=0;i<e.length;i++) {
+
+                if($.input.clickListeners.indexOf(e[i]) >= 0 &&
+                    gx + e[i][3][0] <= mx &&
+                    gx + e[i][3][0] + e[i][3][2] >= mx &&
+                    gy + e[i][3][1] <= my &&
+                    gy + e[i][3][1] + e[i][3][3] >= my
+                )
+                    e[i][6](e[i]);
+
+                $.input.click(mx, my, e[i][1], gx + e[i][3][0], gy + e[i][3][1]);
+
+            }
+        }
     },
     utils: {
         decode: function(s) {
@@ -621,6 +676,23 @@ var $ = {
                         if (b[i][j] !== undefined)
                             a[i][j] = b[i][j];
             return a;
+        }
+    },
+    debug: {
+        getActualPosition: function(el, e, x, y) {
+            if(!e) e = $.entities;
+            if(!x) x = 0;
+            if(!y) y = 0;
+            for(var i=0;i<e.length;i++) {
+                if (e[i] === el)
+                    return ( x + el[3][0] + ( el[3][4] ? 0 : 0 ) ) + ' x ' + ( y + el[3][1] + ( el[3][4] ? 0 : 0 ) );
+                else {
+                    var t = $.debug.getActualPosition(el, e[i][1], x + el[3][0], y + el[3][1]);
+                    if(t)
+                        return t;
+                }
+            }
+            return false;
         }
     }
 };
