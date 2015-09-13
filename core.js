@@ -564,7 +564,7 @@ var $ = {
                         );
                     }
 
-                    self[0][0] = ($.score < 1000 ? '0' : '') + ($.score < 100 ? '0' : '') + $.score + ' points';
+                    self[0][0] = $.score + ' coins';
                     self[3][0] = 960 - 10 - ($.entities[4][3][2] * self[3][5] + 2) * self[0][0].length;
                 }
             ],,
