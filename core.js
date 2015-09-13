@@ -5,8 +5,8 @@ var $ = {
 
     block_keyboard_input: true,
 
-    score: 300,
-    last_score: 300,
+    score: 600,
+    last_score: 600,
 
     level: 4,
     exp: 100,
@@ -195,7 +195,7 @@ var $ = {
                             self[0][0] += dt;
                             if(self[0][0] >= 0.75) {
                                 self[0][0] = 0;
-                                self[2][1] = self[2][1] ? 0 : -1;
+                                self[2][1] = self[2][1] ? 0 : 2;
                             }
                         }
 
@@ -280,7 +280,7 @@ var $ = {
                     self[1].splice(0, self[0][2].length);
                     for(var i= 0,e;i<self[0][0].length;i++) {
                         e = $.utils.merge($.utils.clone($.entities[4]), [
-                            ,,[,("abcdefghijklmnopqrstuvwxyz0123456789/:><-+?!',").indexOf(self[0][0][i])], [($.entities[4][3][2] * self[3][5] + 2) * i,,,,,self[3][5]]
+                            ,,[,("abcdefghijklmnopqrstuvwxyz0123456789/:><-+?!', ").indexOf(self[0][0][i])], [($.entities[4][3][2] * self[3][5] + 2) * i,,,,,self[3][5]]
                         ]);
                         if(e[5]) e[5](e);
                         self[1].unshift(e);
@@ -559,7 +559,7 @@ var $ = {
                                     self[2][2] -= 2 * dt;
                                     self[2][2] = $.utils.clamp(self[2][2], 0);
                                     self[3][1] += 40 * dt;
-                                }],,,[($.entities[4][3][2] * self[3][5]+2)*(4 - diff.length), 5,,,0, self[3][5]]
+                                }],,,[($.entities[4][3][2] * self[3][5]+2)*(3 - diff.length), 5,,,0, self[3][5]]
                             ])
                         );
                     }
@@ -844,6 +844,8 @@ var $ = {
                                 self[1][0][2][2] = 1;
                                 self[1][0][0][3] = 1;
 
+                                $.score -= 100;
+
                                 self[0][1] = 1;
 
                             }
@@ -899,7 +901,7 @@ var $ = {
                             self[0][0] += dt;
                             if(self[0][0] >= 0.75) {
                                 self[0][0] = 0;
-                                self[2][1] = self[2][1] ? 0 : -1;
+                                self[2][1] = self[2][1] ? 0 : 2;
                             }
                         }else {
                             if($.exp <= 0 && $.level > 1) {
@@ -1500,13 +1502,13 @@ var $ = {
         [  // 5: coin
             16,
             16,
-            2,
+            3,
             'a5.c6.a8.c2.a6.c2.a5.c.a10.c.a3.c.a12.c.a2.c.a12.c.a.c.a14.c2.a14.c2.a14.c2.a14.c2.a14.c2.a14.c.a.c.a12.c.a2.c.a12.c.a3.c.a10.c.a5.c2.a6.c2.a8.c6.a10.b6.a8.b4.d2.e2.b2.a5.b.c.b.d6.e2.b.a3.b.c.b.d9.e.b.a2.b.c.b.d9.e.b.a.b.c.b.d4.c2.b.d4.e.b2.c.b.d3.c.d3.b.d3.e.b2.c.b.d3.c.d7.e.b2.c.b.d3.c.d7.e.b2.c.b.d3.c.d3.b.d3.e.b2.c.b.d4.c2.b.d4.e.b.a.b.c.b.d9.e.b.a2.b.c.b.d9.e.b.a3.b.c.b.d6.e2.b.a5.b4.d2.e2.b2.a8.b6.a5'
         ], // 5: coin
         [  // 6: font
             4,
             5,
-            46,
+            47,
             'e.a2.e2.a2.e6.a2.e.a.e2.a.e3.a.e.a2.e4.a.e.a2.e4.a2.e4.a3.e.a3.e.a4.e6.a.e.a2.e2.a2.e2.a2.e4.a.e5.a3.e3.a.e.a3.e5.a3.e.a3.e3.a.e.a3.e4.a.e4.a2.e2.a.e3.a4.e4.a2.e2.a2.e6.a2.e2.a2.e.a.e.a3.e.a3.e.a3.e.a3.e.a3.e2.a.e.a2.e.a3.e.a3.e.a3.e2.a2.e2.a.e.a.e2.a2.e.a.e.a.e.a2.e4.a.e.a3.e.a3.e.a3.e.a3.e.a2.e2.a2.e2.a2.e6.a2.e2.a2.e2.a2.e2.a.e4.a.e2.a2.e.a.e2.a.e.a2.e2.a2.e2.a2.e.a.e2.a.e.a3.e.a3.e3.a.e.a2.e4.a2.e4.a.e3.a2.e2.a2.e.a.e2.a.e.a2.e2.a.e.a.e3.a.e.a2.e4.a.e3.a4.e.a.e2.a.e.a4.e3.a.e.a3.e.a3.e.a3.e.a2.e3.a.e5.a2.e2.a2.e2.a2.e2.a2.e.a.e2.a.e.a2.e2.a2.e2.a2.e2.a2.e.a.e2.a.e5.a2.e2.a2.e2.a2.e2.a2.e.a.e2.a2.e2.a.e.a2.e2.a2.e.a.e.a3.e.a2.e3.a.e.a.e.a.e.a.e.a.e4.a.e.a4.e.a4.e5.a.e2.a.e.a2.e2.a2.e2.a2.e.a.e2.a3.e.a3.e.a3.e.a2.e2.a3.e.a.e4.a.e.a4.e.a.e.a2.e.a.e2.a.e3.a4.e.a.e3.a3.e4.a4.e.a3.e.a.e4.a2.e2.a2.e4.a4.e4.a.e.a3.e4.a.e2.a.e.a2.e4.a.e.a4.e3.a.e.a3.e.a4.e.a4.e10.a2.e6.a2.e8.a4.e.a.e4.a2.e.a.e2.a.e.a4.e.a4.e.a4.e.a9.e.a7.e.a6.e.a4.e.a4.e.a2.e.a2.e.a6.e.a2.e.a2.e.a4.e.a4.e.a8.e3.a14.e.a2.e3.a2.e.a8.e.a7.e.a.e.a2.e.a.e2.a2.e.a7.e.a3.e.a3.e.a15.e.a3.e.a3.e.a3.e.a14'
         ], // 6: font
         [  // 7: block / particle color b
@@ -1542,7 +1544,7 @@ var $ = {
         [  // 12: exp
             16,
             16,
-            2,
+            3,
             'a7.c2.a13.c.a2.c.a11.c.a4.c.a9.c.a6.c.a7.c.a8.c.a5.c.a10.c.a3.c.a12.c.a.c.a14.c2.a14.c.a.c.a12.c.a3.c.a10.c.a5.c.a8.c.a7.c.a6.c.a9.c.a4.c.a11.c.a2.c.a13.c2.a14.c.e.a13.c.d2.e.a11.c.d4.e.a9.c.d6.e.a7.b.d8.e.a5.b.d4.c2.b.d3.e.a3.b.d4.c.d7.e.a.b.d5.c2.b.d6.e.b.d5.c.d8.e.a.b.d5.c2.b.d4.e.a3.b.d10.e.a5.b.d8.e.a7.c.d6.e.a9.c.d4.e.a11.c.d2.e.a13.c.e.a7'
         ], // 12: exp
         [  // 13: lava
@@ -1616,7 +1618,7 @@ var $ = {
                 $.ctx.globalAlpha = e[i][2][2];
             $.ctx.drawImage(
                 $.gfx[ e[i][2][0] ][5],
-                $.gfx[ e[i][2][0] ][0] * Math.floor(e[i][2][1]),
+                $.gfx[ e[i][2][0] ][0] * Math.floor($.utils.clamp(e[i][2][1],0, $.gfx[e[i][2][0]][2])),
                 0,
                 $.gfx[ e[i][2][0] ][0],
                 $.gfx[ e[i][2][0] ][1],
